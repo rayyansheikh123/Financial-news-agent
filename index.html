@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial News Intelligence Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #0f1525;
+    --bg3: #141c2e;
+    --bg4: #1a2438;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --accent: #1d6ef5;
+    --accent2: #3d8bff;
+    --accent-glow: rgba(29,110,245,0.15);
+    --accent-subtle: rgba(29,110,245,0.08);
+    --gold: #f0b429;
+    --gold-subtle: rgba(240,180,41,0.1);
+    --red: #e53e3e;
+    --red-subtle: rgba(229,62,62,0.1);
+    --green: #38a169;
+    --green-subtle: rgba(56,161,105,0.1);
+    --text: #e8eaf0;
+    --text2: #8892a4;
+    --text3: #4a5568;
+    --font-display: 'DM Serif Display', Georgia, serif;
+    --font-body: 'Outfit', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --r: 10px;
+    --r-sm: 6px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(29,110,245,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29,110,245,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 48px 48px 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .header-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.85); }
+  }
+
+  .eyebrow-text {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text2);
+    text-transform: uppercase;
+  }
+
+  .header-title {
+    font-family: var(--font-display);
+    font-size: clamp(36px, 5vw, 58px);
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
+
+  .header-title em {
+    font-style: italic;
+    color: var(--accent2);
+  }
+
+  .header-sub {
+    font-size: 16px;
+    color: var(--text2);
+    font-weight: 300;
+    max-width: 520px;
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stat-item { display: flex; flex-direction: column; gap: 4px; }
+  .stat-val {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .stat-lbl {
+    font-size: 12px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    position: relative;
+    z-index: 10;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 48px 80px;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+
+  /* SIDEBAR */
+  .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+  }
+
+  .panel-body { padding: 16px 20px; }
+
+  /* CATEGORIES */
+  .cat-grid { display: flex; flex-direction: column; gap: 8px; }
+
+  .cat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: transparent;
+    color: var(--text2);
+  }
+
+  .cat-item:hover { border-color: var(--border2); color: var(--text); }
+
+  .cat-item.active {
+    background: var(--accent-subtle);
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .cat-check {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    border: 1.5px solid var(--border2);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .cat-item.active .cat-check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .cat-check svg { opacity: 0; transition: opacity 0.15s; }
+  .cat-item.active .cat-check svg { opacity: 1; }
+
+  .cat-label { font-size: 13px; flex: 1; }
+
+  .cat-count {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  /* WEIGHT SLIDERS */
+  .weight-list { display: flex; flex-direction: column; gap: 16px; }
+
+  .weight-item { display: flex; flex-direction: column; gap: 7px; }
+
+  .weight-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .weight-label { font-size: 12px; color: var(--text2); }
+
+  .weight-val {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent2);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--bg4);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 8px rgba(61,139,255,0.4);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  /* EMAIL CONFIG */
+  .config-fields { display: flex; flex-direction: column; gap: 12px; }
+
+  .field-label {
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 5px;
+  }
+
+  input[type=text], input[type=time], input[type=email] {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type=text]:focus,
+  input[type=time]:focus,
+  input[type=email]:focus {
+    border-color: var(--accent);
+  }
+
+  input[type=time] { width: 120px; }
+
+  /* RUN BUTTON */
+  .run-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--r-sm);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .run-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+    pointer-events: none;
+  }
+
+  .run-btn:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(29,110,245,0.35); }
+  .run-btn:active { transform: translateY(0); }
+  .run-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* MAIN CONTENT */
+  .content { display: flex; flex-direction: column; gap: 20px; }
+
+  /* PROGRESS BAR */
+  .progress-panel {
+    background: var(--bg2);
+    border: 1px solid var(--accent);
+    border-radius: var(--r);
+    padding: 20px 24px;
+    display: none;
+  }
+
+  .progress-panel.show { display: block; }
+
+  .progress-step {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .spinner {
+    width: 12px; height: 12px;
+    border: 2px solid rgba(61,139,255,0.2);
+    border-top-color: var(--accent2);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .progress-bar-track {
+    height: 3px;
+    background: var(--bg4);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* METRICS ROW */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .metric-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color 0.2s;
+  }
+
+  .metric-card:hover { border-color: var(--border2); }
+
+  .metric-num {
+    font-family: var(--font-display);
+    font-size: 32px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .metric-label {
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
+  .metric-card.high .metric-num { color: var(--red); }
+  .metric-card.med .metric-num { color: var(--gold); }
+  .metric-card.low .metric-num { color: var(--green); }
+
+  /* NEWS FEED */
+  .feed-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+  }
+
+  .feed-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .feed-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text2);
+  }
+
+  .feed-timestamp {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .news-item {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+    align-items: start;
+    transition: background 0.15s;
+    cursor: default;
+    animation: fadeIn 0.3s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .news-item:last-child { border-bottom: none; }
+  .news-item:hover { background: var(--bg3); }
+
+  .news-rank {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text3);
+    padding-top: 3px;
+    min-width: 20px;
+  }
+
+  .news-body { display: flex; flex-direction: column; gap: 7px; }
+
+  .news-title-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.45;
+  }
+
+  .news-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .badge-high { background: var(--red-subtle); color: #fc8181; border: 1px solid rgba(229,62,62,0.2); }
+  .badge-med { background: var(--gold-subtle); color: #f6c05e; border: 1px solid rgba(240,180,41,0.2); }
+  .badge-low { background: var(--green-subtle); color: #68d391; border: 1px solid rgba(56,161,105,0.2); }
+
+  .news-cat {
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .news-region {
+    font-size: 11px;
+    color: var(--text3);
+    padding: 2px 7px;
+    background: var(--bg3);
+    border-radius: 4px;
+  }
+
+  .score-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    padding-top: 2px;
+  }
+
+  .score-num {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .score-bar {
+    width: 60px;
+    height: 3px;
+    background: var(--bg4);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .score-fill { height: 100%; border-radius: 2px; }
+
+  /* EMAIL PREVIEW */
+  .email-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+    display: none;
+  }
+
+  .email-panel.show { display: block; }
+
+  .email-chrome {
+    background: var(--bg3);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .email-dots { display: flex; gap: 6px; }
+  .email-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .email-dot:nth-child(1) { background: #ff5f57; }
+  .email-dot:nth-child(2) { background: #febc2e; }
+  .email-dot:nth-child(3) { background: #28c840; }
+
+  .email-subject-bar {
+    flex: 1;
+    background: var(--bg4);
+    border-radius: 4px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--text2);
+    font-family: var(--font-mono);
+  }
+
+  .email-body {
+    padding: 24px;
+  }
+
+  .email-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .email-brand {
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--text);
+  }
+
+  .email-brand span { color: var(--accent2); }
+
+  .email-date {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .email-section-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    margin-bottom: 12px;
+  }
+
+  .email-news-item {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+
+  .email-news-item:last-child { border-bottom: none; }
+
+  .email-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+    padding-top: 2px;
+    min-width: 16px;
+  }
+
+  .email-news-title {
+    font-size: 13px;
+    color: var(--text);
+    flex: 1;
+    line-height: 1.4;
+  }
+
+  .email-footer {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text3);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--green-subtle);
+    border: 1px solid rgba(56,161,105,0.2);
+    border-radius: var(--r-sm);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #68d391;
+    display: none;
+  }
+
+  .status-bar.show { display: flex; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    padding: 64px 24px;
+    text-align: center;
+    color: var(--text3);
+  }
+
+  .empty-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+  }
+
+  .empty-text {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* SECONDARY BUTTON */
+  .sec-btn {
+    padding: 10px 18px;
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border2);
+    border-radius: var(--r-sm);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .sec-btn:hover { background: var(--bg3); color: var(--text); }
+
+  /* FILTER ROW */
+  .filter-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .filter-tabs { display: flex; gap: 6px; }
+
+  .filter-tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    background: transparent;
+    font-family: var(--font-body);
+    transition: all 0.15s;
+  }
+
+  .filter-tab:hover { border-color: var(--border2); color: var(--text); }
+
+  .filter-tab.active {
+    background: var(--accent-subtle);
+    border-color: var(--accent);
+    color: var(--accent2);
+  }
+
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; padding: 24px 20px 60px; }
+    header { padding: 32px 20px 0; }
+    .metrics-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">
+    <div class="live-dot"></div>
+    <span class="eyebrow-text">Financial Intelligence Agent — v1.0</span>
+  </div>
+  <h1 class="header-title">Global <em>Financial</em><br>News Intelligence</h1>
+  <p class="header-sub">Automated daily briefing agent. Scrapes global sources, scores importance by regulatory impact, market significance, and innovation potential, then delivers a ranked report to your inbox.</p>
+  <div class="header-stats">
+    <div class="stat-item">
+      <span class="stat-val" id="hdr-sources">47</span>
+      <span class="stat-lbl">Sources monitored</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-val" id="hdr-regions">12</span>
+      <span class="stat-lbl">Regions covered</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-val">Daily</span>
+      <span class="stat-lbl">Delivery frequency</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-val" id="hdr-last">—</span>
+      <span class="stat-lbl">Last run</span>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Categories</span>
+        <button class="sec-btn" style="padding:4px 10px; font-size:11px;" onclick="toggleAll()">Toggle all</button>
+      </div>
+      <div class="panel-body">
+        <div class="cat-grid" id="cat-grid">
+          <!-- filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Importance Weights</span>
+      </div>
+      <div class="panel-body">
+        <div class="weight-list">
+          <div class="weight-item">
+            <div class="weight-row">
+              <span class="weight-label">Regulatory / Policy impact</span>
+              <span class="weight-val" id="w1-val">40%</span>
+            </div>
+            <input type="range" min="0" max="100" value="40" step="5" id="w1" oninput="updateWeights(this,'w1-val')">
+          </div>
+          <div class="weight-item">
+            <div class="weight-row">
+              <span class="weight-label">Market & macro significance</span>
+              <span class="weight-val" id="w2-val">35%</span>
+            </div>
+            <input type="range" min="0" max="100" value="35" step="5" id="w2" oninput="updateWeights(this,'w2-val')">
+          </div>
+          <div class="weight-item">
+            <div class="weight-row">
+              <span class="weight-label">Innovation / disruption potential</span>
+              <span class="weight-val" id="w3-val">25%</span>
+            </div>
+            <input type="range" min="0" max="100" value="25" step="5" id="w3" oninput="updateWeights(this,'w3-val')">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Email Delivery</span>
+      </div>
+      <div class="panel-body">
+        <div class="config-fields">
+          <div>
+            <div class="field-label">Recipient</div>
+            <input type="email" id="email-input" placeholder="your@email.com">
+          </div>
+          <div>
+            <div class="field-label">Daily send time</div>
+            <input type="time" id="send-time" value="07:00">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="run-btn" id="run-btn" onclick="runAgent()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Run Agent Now
+    </button>
+
+    <button class="sec-btn" style="width:100%; text-align:center;" onclick="previewEmail()">Preview Email Report</button>
+
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="content">
+
+    <!-- PROGRESS -->
+    <div class="progress-panel" id="progress-panel">
+      <div class="progress-step">
+        <div class="spinner"></div>
+        <span id="progress-text">Initialising agent...</span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- STATUS -->
+    <div class="status-bar" id="status-bar">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <span id="status-text">Agent completed successfully.</span>
+    </div>
+
+    <!-- METRICS -->
+    <div class="metrics-row" id="metrics-row" style="display:none;">
+      <div class="metric-card">
+        <div class="metric-num" id="m-total">0</div>
+        <div class="metric-label">Articles collected</div>
+      </div>
+      <div class="metric-card high">
+        <div class="metric-num" id="m-high">0</div>
+        <div class="metric-label">High importance</div>
+      </div>
+      <div class="metric-card med">
+        <div class="metric-num" id="m-med">0</div>
+        <div class="metric-label">Medium importance</div>
+      </div>
+      <div class="metric-card low">
+        <div class="metric-num" id="m-low">0</div>
+        <div class="metric-label">Low importance</div>
+      </div>
+    </div>
+
+    <!-- FEED -->
+    <div class="feed-panel">
+      <div class="feed-header">
+        <span class="feed-title">Intelligence Feed</span>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <div class="filter-tabs" id="filter-tabs">
+            <button class="filter-tab active" data-f="all" onclick="setFilter(this,'all')">All</button>
+            <button class="filter-tab" data-f="high" onclick="setFilter(this,'high')">High</button>
+            <button class="filter-tab" data-f="med" onclick="setFilter(this,'med')">Medium</button>
+            <button class="filter-tab" data-f="low" onclick="setFilter(this,'low')">Low</button>
+          </div>
+          <span class="feed-timestamp" id="feed-ts">—</span>
+        </div>
+      </div>
+      <div id="feed-body">
+        <div class="empty-state">
+          <div class="empty-icon">◎</div>
+          <div class="empty-text">Configure your categories and weights,<br>then run the agent to see results.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMAIL PREVIEW -->
+    <div class="email-panel" id="email-panel">
+      <div class="email-chrome">
+        <div class="email-dots">
+          <div class="email-dot"></div>
+          <div class="email-dot"></div>
+          <div class="email-dot"></div>
+        </div>
+        <div class="email-subject-bar" id="email-subject">Financial Services Intelligence — Daily Briefing</div>
+      </div>
+      <div class="email-body">
+        <div class="email-header-row">
+          <div class="email-brand">Financial<span>Intel</span></div>
+          <div class="email-date" id="email-date"></div>
+        </div>
+        <div class="email-section-title">Top stories today</div>
+        <div id="email-stories"></div>
+        <div class="email-footer">
+          <span>Powered by Financial News Agent</span>
+          <span>Unsubscribe · Manage preferences</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const CATEGORIES = [
+  { id: 'central-banking', label: 'Central Banking', count: 8, active: true },
+  { id: 'regulation', label: 'Regulation & Compliance', count: 11, active: true },
+  { id: 'fintech', label: 'Fintech & AI', count: 9, active: true },
+  { id: 'capital-markets', label: 'Capital Markets', count: 7, active: true },
+  { id: 'risk-credit', label: 'Risk & Credit', count: 6, active: true },
+  { id: 'insurance', label: 'Insurance', count: 4, active: false },
+  { id: 'crypto', label: 'Crypto & Digital Assets', count: 5, active: false },
+  { id: 'esg', label: 'ESG Finance', count: 3, active: false },
+];
+
+const NEWS_DATA = [
+  { title: "Basel IV implementation: EU banks face stricter capital buffers from Q1 2026", cat: "regulation", catLabel: "Regulation", region: "Europe", score: 92, tier: "high", reg: 90, mkt: 85, inn: 60 },
+  { title: "Fed signals two rate cuts in 2026 amid cooling inflation data", cat: "central-banking", catLabel: "Central Banking", region: "USA", score: 88, tier: "high", reg: 70, mkt: 95, inn: 40 },
+  { title: "Saudi SAMA issues open banking framework mandate for tier-2 banks", cat: "regulation", catLabel: "Regulation", region: "GCC", score: 85, tier: "high", reg: 95, mkt: 70, inn: 75 },
+  { title: "JPMorgan deploys AI credit underwriting model across retail portfolio", cat: "fintech", catLabel: "Fintech & AI", region: "USA", score: 79, tier: "high", reg: 60, mkt: 75, inn: 95 },
+  { title: "ECB stress test results: 12 European banks flagged for liquidity gaps", cat: "risk-credit", catLabel: "Risk & Credit", region: "Europe", score: 76, tier: "med", reg: 80, mkt: 75, inn: 35 },
+  { title: "India's UPI crosses 15B monthly transactions; RBI eyes international expansion", cat: "fintech", catLabel: "Fintech & AI", region: "Asia", score: 71, tier: "med", reg: 55, mkt: 70, inn: 90 },
+  { title: "Global credit spreads widen as EM debt concerns mount", cat: "capital-markets", catLabel: "Capital Markets", region: "Global", score: 65, tier: "med", reg: 40, mkt: 88, inn: 30 },
+  { title: "MAS finalises tokenised deposit regulations for Singapore banks", cat: "crypto", catLabel: "Crypto & Digital", region: "Asia", score: 60, tier: "med", reg: 85, mkt: 50, inn: 80 },
+  { title: "Australian APRA consults on operational resilience standards", cat: "regulation", catLabel: "Regulation", region: "APAC", score: 48, tier: "low", reg: 75, mkt: 35, inn: 25 },
+  { title: "UK FCA issues guidance on AI model explainability in lending decisions", cat: "fintech", catLabel: "Fintech & AI", region: "UK", score: 44, tier: "low", reg: 80, mkt: 30, inn: 65 },
+  { title: "Bank of Canada holds rates as housing market shows resilience", cat: "central-banking", catLabel: "Central Banking", region: "Canada", score: 42, tier: "low", reg: 35, mkt: 60, inn: 20 },
+  { title: "IAIS publishes updated insurance capital standards consultation paper", cat: "insurance", catLabel: "Insurance", region: "Global", score: 38, tier: "low", reg: 70, mkt: 30, inn: 15 },
+];
+
+let activeCats = new Set(CATEGORIES.filter(c => c.active).map(c => c.id));
+let currentFilter = 'all';
+let lastResults = [];
+
+function buildCatGrid() {
+  const grid = document.getElementById('cat-grid');
+  grid.innerHTML = CATEGORIES.map(c => `
+    <div class="cat-item ${c.active ? 'active' : ''}" data-id="${c.id}" onclick="toggleCat(this,'${c.id}')">
+      <div class="cat-check">
+        <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="2"><polyline points="1 5 4 8 9 2"/></svg>
+      </div>
+      <span class="cat-label">${c.label}</span>
+      <span class="cat-count">${c.count}</span>
+    </div>`).join('');
+}
+
+function toggleCat(el, id) {
+  el.classList.toggle('active');
+  if (activeCats.has(id)) activeCats.delete(id);
+  else activeCats.add(id);
+}
+
+function toggleAll() {
+  const allActive = activeCats.size === CATEGORIES.length;
+  activeCats.clear();
+  document.querySelectorAll('.cat-item').forEach(el => {
+    el.classList.toggle('active', !allActive);
+    if (!allActive) activeCats.add(el.dataset.id);
+  });
+}
+
+function updateWeights(el, valId) {
+  document.getElementById(valId).textContent = el.value + '%';
+}
+
+function computeScore(item) {
+  const w1 = parseInt(document.getElementById('w1').value) / 100;
+  const w2 = parseInt(document.getElementById('w2').value) / 100;
+  const w3 = parseInt(document.getElementById('w3').value) / 100;
+  const total = w1 + w2 + w3 || 1;
+  return Math.round((item.reg * w1 + item.mkt * w2 + item.inn * w3) / total);
+}
+
+function tierColor(tier) {
+  return tier === 'high' ? '#e53e3e' : tier === 'med' ? '#f0b429' : '#38a169';
+}
+
+function setFilter(el, f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t.dataset.f === f));
+  renderFeed(lastResults);
+}
+
+function renderFeed(items) {
+  const body = document.getElementById('feed-body');
+  const filtered = currentFilter === 'all' ? items : items.filter(i => i.tier === currentFilter);
+  if (!filtered.length) {
+    body.innerHTML = '<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-text">No articles match this filter.</div></div>';
+    return;
+  }
+  body.innerHTML = filtered.map((item, i) => `
+    <div class="news-item" style="animation-delay:${i * 0.04}s">
+      <div class="news-rank">${String(i+1).padStart(2,'0')}</div>
+      <div class="news-body">
+        <div class="news-title-text">${item.title}</div>
+        <div class="news-meta">
+          <span class="badge badge-${item.tier}">${item.tier}</span>
+          <span class="news-cat">${item.catLabel}</span>
+          <span class="news-region">${item.region}</span>
+        </div>
+      </div>
+      <div class="score-block">
+        <div class="score-num" style="color:${tierColor(item.tier)}">${item.score}</div>
+        <div class="score-bar"><div class="score-fill" style="width:${item.score}%;background:${tierColor(item.tier)}"></div></div>
+      </div>
+    </div>`).join('');
+}
+
+async function runAgent() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="border-top-color:#fff"></div> Running...';
+
+  document.getElementById('progress-panel').classList.add('show');
+  document.getElementById('status-bar').classList.remove('show');
+  document.getElementById('metrics-row').style.display = 'none';
+
+  const steps = [
+    ['Scraping 47 global sources...', 15],
+    ['Parsing & deduplicating articles...', 35],
+    ['Scoring importance with weighted model...', 60],
+    ['Ranking and filtering by category...', 80],
+    ['Generating daily report...', 95],
+    ['Complete.', 100],
+  ];
+
+  const fill = document.getElementById('progress-fill');
+  const txt = document.getElementById('progress-text');
+
+  for (const [msg, pct] of steps) {
+    txt.textContent = msg;
+    fill.style.width = pct + '%';
+    await new Promise(r => setTimeout(r, 480));
+  }
+
+  document.getElementById('progress-panel').classList.remove('show');
+
+  const active = NEWS_DATA.filter(n => activeCats.has(n.cat));
+  const scored = active.map(n => ({ ...n, score: computeScore(n), tier: computeScore(n) >= 75 ? 'high' : computeScore(n) >= 55 ? 'med' : 'low' }));
+  scored.sort((a,b) => b.score - a.score);
+  lastResults = scored;
+
+  const high = scored.filter(n => n.tier === 'high').length;
+  const med = scored.filter(n => n.tier === 'med').length;
+  const low = scored.filter(n => n.tier === 'low').length;
+
+  document.getElementById('m-total').textContent = scored.length;
+  document.getElementById('m-high').textContent = high;
+  document.getElementById('m-med').textContent = med;
+  document.getElementById('m-low').textContent = low;
+  document.getElementById('metrics-row').style.display = 'grid';
+
+  renderFeed(scored);
+
+  const now = new Date();
+  const ts = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('feed-ts').textContent = `Updated ${ts}`;
+  document.getElementById('hdr-last').textContent = ts;
+
+  const email = document.getElementById('email-input').value;
+  const time = document.getElementById('send-time').value;
+  const statusText = email
+    ? `Agent complete. Report scheduled for ${email} daily at ${time}.`
+    : 'Agent complete. Add an email address to enable daily delivery.';
+
+  document.getElementById('status-text').textContent = statusText;
+  document.getElementById('status-bar').classList.add('show');
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Agent Now';
+}
+
+function previewEmail() {
+  if (!lastResults.length) {
+    alert('Run the agent first to generate results.');
+    return;
+  }
+  const top = lastResults.slice(0, 6);
+  const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('email-date').textContent = today;
+  document.getElementById('email-subject').textContent = `Financial Services Intelligence — ${today}`;
+  document.getElementById('email-stories').innerHTML = top.map((n, i) => `
+    <div class="email-news-item">
+      <div class="email-num">${i+1}.</div>
+      <div class="email-news-title">${n.title}</div>
+      <span class="badge badge-${n.tier}" style="flex-shrink:0">${n.tier}</span>
+    </div>`).join('');
+  document.getElementById('email-panel').classList.add('show');
+  document.getElementById('email-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+buildCatGrid();
+</script>
+</body>
+</html>
